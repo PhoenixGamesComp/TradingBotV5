@@ -1,0 +1,9 @@
+class Actions:
+
+    NO = 0
+    ENTER_LONG = 1
+    EXIT_LONG_PROFIT = 2
+    EXIT_LONG_LOSS = 3
+    ENTER_SHORT = 4
+    EXIT_SHORT_PROFIT = 5
+    EXIT_SHORT_LOSS = 6
