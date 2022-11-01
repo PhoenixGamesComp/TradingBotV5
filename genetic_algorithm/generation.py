@@ -1,7 +1,7 @@
 from cProfile import label
 import random
 import pickle
-from genetic_algorithm.genes import Genes
+from genetic_algorithm.individual import Individual
 from misc.logger import Logger
 import _thread as thread
 
@@ -31,7 +31,7 @@ class Generation:
 
                 unit.append(method())
 
-            self.population.append(Genes(self.shuffler, unit))
+            self.population.append(Individual(self.shuffler, unit))
 
     # Split a list to N approximately equal parts
     def split(self, a, n):
@@ -105,7 +105,7 @@ class Generation:
             # Unsuffle child's dna
             child = self.shuffler.unshuffle(child)
 
-            child = Genes(self.shuffler, child)
+            child = Individual(self.shuffler, child)
 
             # Mutation chance
             if random.random() < self.mutation_chance:
