@@ -10,6 +10,14 @@ class Population:
     def __iter__(self):
         return self.population.__iter__()
 
+    def __getitem__(self, index):
+
+        return self.population[index]
+
+    def __setitem__(self, index, item1):
+
+        self.population[index] = item1
+
     def extend(self, new_individuals):
         self.population.extend(new_individuals)
 

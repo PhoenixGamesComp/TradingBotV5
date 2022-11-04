@@ -5,7 +5,7 @@ class Problem:
 
     def __init__(self, shuffler, objectives,
                  n_variables, variables_range, variables_type,
-                 generation_methods,
+                 generation_methods, mutation_methods=None,
                  expand=True, same_range=False, same_type=False):
 
         self.shuffler = shuffler
@@ -16,6 +16,12 @@ class Problem:
         self.generation_methods = generation_methods
         self.variables_range = []
         self.variables_type = []
+
+        self.mutation_methods = mutation_methods
+        # If mutation methods isn't none, shuffle them the same way dna is shuffled
+        if self.mutation_methods is not None:
+
+            self.mutation_methods = self.shuffler.shuffle(self.mutation_methods)
 
         # Handle variables' range
         if same_range:

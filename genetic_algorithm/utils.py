@@ -1,4 +1,5 @@
 from genetic_algorithm.population import Population
+from genetic_algorithm.individual import Individual
 import random
 
 
@@ -25,23 +26,13 @@ class GenericUtils:
     def split(self, a, n):
 
         k, m = divmod(len(a), n)
-        return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
+        return list(a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
 
-    def arithmetic_crossover(self, individual1, individual2):
+    def __type_babysitter(self, individual):
 
-        pass
+        for gene, v_type in zip(individual.genes, self.problem.variables_type):
 
-    def uniform_crossover(self, individuals):
-
-        pass
-
-    def random_mutation(self):
-
-        pass
-
-    def gaussian_mutation(self):
-
-        pass
+            gene = v_type(gene)
 
 
 class GAUtils(GenericUtils):
@@ -53,6 +44,103 @@ class GAUtils(GenericUtils):
         self.n_individuals = n_individuals
         self.n_parents = n_parents
         self.mutation_prob = mutation_prob
+        self.population = Population()
+
+    def evaluate(self, method):
+
+        self.results = []
+        # Iterate through the population
+        for unit in self.population:
+
+            # Unpack the dna of each unit and pass it through the method, append the result to the results list
+            self.results.append(method(*unit.get_dna()))
+
+        return self.results
+
+    def keep_best_performing(self, top_n):
+
+        # Sort based on results, if results is iterable make it a tuple
+        Z = [x for _, x in sorted(
+            zip(self.results, self.population), key=lambda x: tuple(
+                x[0]) if hasattr(x[0], "__iter__") else x[0], reverse=True)]
+        Z = Z[0:top_n]
+        return Z
+
+    def crossover(self, best_ones):
+
+        new_population = []
+
+        for _ in range(self.n_individuals):
+
+            parents = Population()
+
+            # Get the potential parents
+            for i in range(self.n_parents):
+
+                potential_parent = best_ones[random.randint(
+                    0, len(best_ones) - 1)]
+
+                while potential_parent in parents:
+
+                    potential_parent = best_ones[random.randint(
+                        0, len(best_ones) - 1)]
+
+                parents.append(potential_parent)
+
+            # Split the parent's dna
+            for parent in parents:
+
+                parent = self.split(parent.get_shuffled_dna(), self.n_parents)
+
+            child = []
+
+            # Create child based on parents dna
+            for x in range(self.n_parents):
+
+                child += parents[x].get_shuffled_dna()
+
+            # Unsuffle child's dna
+            child = self.problem.shuffler.unshuffle(child)
+
+            child = Individual(self.problem.shuffler, child)
+
+            # Mutation chance
+            if random.random() < self.mutation_prob:
+
+                child.mutate(self.problem.mutation_methods)
+
+            # Add child to the new population
+            new_population.append(child)
+
+        # Update population
+        self.population = new_population
+
+    def get_worst_of_all(self):
+
+        # Get the worst result
+        worst_result = min(self.results)
+        # Get worst result's index
+        worst_result_index = self.results.index(worst_result)
+
+        # Return the worst of all
+        return self.population[worst_result_index]
+
+    def mutate(self, individual):
+
+        n_mutations = random.randint(0, len(individual.get_dna()))
+        mutated_indeces = []
+
+        for _ in range(n_mutations):
+
+            mutation_index = random.randint(0, len(individual.get_dna()))
+
+            # Make sure every mutation is happening on different index
+            while mutation_index in mutated_indeces:
+
+                mutation_index = random.randint(0, len(individual.get_dna()))
+
+            individual.genes[mutation_index] = \
+                self.problem.mutation_methods[mutation_index]()
 
 
 class NSGA2Utils(GenericUtils):
@@ -67,6 +155,7 @@ class NSGA2Utils(GenericUtils):
         self.crossover_param = crossover_param
         self.mutation_param = mutation_param
 
+    # Fast non dominated sorting
     def fast_nondominated_sort(self, population):
 
         population.fronts = [[]]
@@ -106,6 +195,7 @@ class NSGA2Utils(GenericUtils):
             i = i+1
             population.fronts.append(temp)
 
+    #
     def calculate_crowding_distance(self, front):
 
         if len(front) > 0:
@@ -158,6 +248,8 @@ class NSGA2Utils(GenericUtils):
             self.__mutate(child2)
             self.problem.calculate_objectives(child1)
             self.problem.calculate_objectives(child2)
+            self.__type_babysitter(child1)
+            self.__type_babysitter(child2)
             children.append(child1)
             children.append(child2)
 
