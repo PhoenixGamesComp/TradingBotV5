@@ -21,7 +21,8 @@ class Problem:
         # If mutation methods isn't none, shuffle them the same way dna is shuffled
         if self.mutation_methods is not None:
 
-            self.mutation_methods = self.shuffler.shuffle(self.mutation_methods)
+            self.mutation_methods = self.shuffler.shuffle(
+                self.mutation_methods)
 
         # Handle variables' range
         if same_range:
@@ -34,6 +35,9 @@ class Problem:
 
             self.variables_range = variables_range
 
+        # Shuffle ranges with the same indeces as the dna
+        self.variables_range = self.shuffler.shuffle(self.variables_range)
+
         # Handle variables' type
         if same_type:
 
@@ -44,6 +48,9 @@ class Problem:
         else:
 
             self.variables_type = variables_type
+
+        # Shuffle types with the same indeces as the dna
+        self.variables_type = self.shuffler.shuffle(self.variables_type)
 
     def generate_individual(self):
 
