@@ -1,6 +1,7 @@
 from genetic_algorithm.population import Population
 from genetic_algorithm.individual import Individual
 import random
+import operator
 
 
 class GenericUtils:
@@ -46,27 +47,45 @@ class GAUtils(GenericUtils):
         self.mutation_prob = mutation_prob
         self.population = Population()
 
-    def evaluate(self, method):
+    def evaluate(self, individual):
 
-        self.results = []
-        # Iterate through the population
-        for unit in self.population:
-
-            # Unpack the dna of each unit and pass it through the method, append the result to the results list
-            self.results.append(method(*unit.get_dna()))
-
-        return self.results
+        # Unpack the dna of individual and pass it through the method,
+        # append the result to the results list
+        individual.objectives = \
+            self.problem.calculate_objectives(*individual.get_dna())
 
     def keep_best_performing(self, top_n):
 
         # Sort based on results, if results is iterable make it a tuple
-        Z = [x for _, x in sorted(
-            zip(self.results, self.population), key=lambda x: tuple(
-                x[0]) if hasattr(x[0], "__iter__") else x[0], reverse=True)]
+        Z = [x for x in sorted(
+            zip(self.population), key=operator.attrgetter("objectives"), reverse=True)]
         Z = Z[0:top_n]
         return Z
 
-    def crossover(self, best_ones):
+    def create_children(self):
+
+        children = Population()
+        top_n = int(0.25 * self.n_individuals)
+        best_ones = self.keep_best_performing(top_n=top_n)
+
+        # Save the best of all
+        best_of_all = best_ones[0]
+
+        # Add a small chance to swap the worst of the best with the worst of all
+        if random.random() < 0.001:
+
+            best_ones[-1] = self.get_worst_of_all()
+
+        # Create children population
+        # Mutation is handled in the crossover method
+        children.population = self.__crossover(best_ones=best_ones)
+
+        # Append the best of all
+        children.append(best_of_all)
+
+        return children
+
+    def __crossover(self, best_ones):
 
         new_population = []
 
@@ -107,25 +126,23 @@ class GAUtils(GenericUtils):
             # Mutation chance
             if random.random() < self.mutation_prob:
 
-                child.mutate(self.problem.mutation_methods)
+                self.__mutate(child)
 
             # Add child to the new population
             new_population.append(child)
 
-        # Update population
-        self.population = new_population
+        # Return new population
+        return new_population
 
     def get_worst_of_all(self):
 
         # Get the worst result
-        worst_result = min(self.results)
-        # Get worst result's index
-        worst_result_index = self.results.index(worst_result)
+        worst_result = min(
+            self.population, key=operator.attrgetter("objectives"))
 
-        # Return the worst of all
-        return self.population[worst_result_index]
+        return worst_result
 
-    def mutate(self, individual):
+    def __mutate(self, individual):
 
         n_mutations = random.randint(0, len(individual.get_dna()))
         mutated_indeces = []
@@ -195,7 +212,7 @@ class NSGA2Utils(GenericUtils):
             i = i+1
             population.fronts.append(temp)
 
-    #
+    # Calculate the average distance of its two neighboring solutions
     def calculate_crowding_distance(self, front):
 
         if len(front) > 0:
